@@ -199,4 +199,43 @@ describe('UserStorage', () => {
       ]);
     });
   });
+
+  describe('shareViaPublicKey()', () => {
+    let storage: UserStorage;
+    let mockBuckets: Buckets;
+
+    beforeEach(() => {
+      const stub = initStubbedStorage();
+      storage = stub.storage;
+      mockBuckets = stub.mockBuckets;
+    });
+
+    it('should throw if public keys are empty', async () => {
+      await expect(
+        storage.shareViaPublicKey({
+          publicKeys: [],
+          paths: [
+            {
+              bucket: 'personal',
+              path: '/randomPath',
+            },
+          ],
+        }),
+      ).to.eventually.be.rejected;
+    });
+
+    it('should throw if public keys are not valid', async () => {
+      await expect(
+        storage.shareViaPublicKey({
+          publicKeys: [''],
+          paths: [
+            {
+              bucket: 'personal',
+              path: '/randomPath',
+            },
+          ],
+        }),
+      ).to.eventually.be.rejected;
+    });
+  });
 });

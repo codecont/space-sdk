@@ -10,3 +10,9 @@ export class DirEntryNotFoundError extends Error {
     super(`'${filePath}' was not found in bucket '${bucket}`);
   }
 }
+
+export class ValidationError extends Error {
+  constructor(private readonly field: string, message: string) {
+    super(`Validation error: '${field}': ${message}`);
+  }
+}

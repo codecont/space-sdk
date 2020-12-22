@@ -1,5 +1,5 @@
 import { SpaceUser } from '@spacehq/users';
-import { Buckets, PathItem, UserAuth } from '@textile/hub';
+import { Buckets, PathAccessRole, PathItem, UserAuth } from '@textile/hub';
 import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import {
@@ -12,7 +12,10 @@ import {
   ListDirectoryResponse,
   OpenFileRequest,
   OpenFileResponse,
+  ShareViaPublicKeyRequest,
+  ShareViaPublicKeyResponse,
 } from './types';
+import { validateNonEmptyArray } from './utils/assertUtils';
 import { sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 
@@ -233,6 +236,40 @@ export class UserStorage {
     }
 
     return summary;
+  }
+
+  /**
+   * shareViaPublicKey shares specified files to users who owns the specified public keys.
+   *
+   * @example
+   * ```typescript
+   * await spaceStorage.shareViaPublicKey({
+   *   publicKeys: ['users-hex-encoded-public-key'],
+   *   paths: [{
+   *      bucket: 'personal',
+   *      path: '/file/path/here'
+   *   }],
+   * });
+   *
+   * ```
+   */
+  public async shareViaPublicKey(request: ShareViaPublicKeyRequest): Promise<ShareViaPublicKeyResponse> {
+    validateNonEmptyArray('publicKeys', request.publicKeys);
+    validateNonEmptyArray('paths', request.paths);
+    const client = this.getUserBucketsClient();
+
+    // convert keys to ed25519pks
+
+    // resolve bucket keys for all paths
+
+    // update access control to allow access for those keys
+    const roles = new Map();
+    roles.set('<user-pk>', PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
+    await client.pushPathAccessRoles('', '', roles);
+
+    // send a mailbox message
+
+    return {};
   }
 
   private getUserBucketsClient(): Buckets {

@@ -73,5 +73,20 @@ uploadResponse.once('done', (data: AddItemsEventData) => {
 This includes operations to share your storage items with existing user (identites)  
 
 ```typescript
-// WIP
+import { UserStorage } from '@space/sdk';
+
+const storage = new UserStorage(user);
+
+// you can share privately with existing users via their public key:
+await storage.shareViaPublicKey({
+  publicKeys: ['users-hex-encoded-public-key'],
+  paths: [{
+    bucket: 'personal',
+    path: '/file/path/here'
+  }],
+});
+
+// or you could share the file publicly by generating a link. Generated link references
+// a centralized hub but file can only be decrypted
+// TODO: Complete Code Snippet
 ```

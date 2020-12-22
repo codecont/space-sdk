@@ -95,3 +95,24 @@ export interface AddItemsResponse {
   once: (type: AddItemsEventType, listener: AddItemsListener) => void;
   off: (type: AddItemsEventType, listener: AddItemsListener) => void;
 }
+
+/**
+ * FullPath represents full path information to a file.
+ * `dbId` is optional and only required for when re-sharing files in another db.
+ */
+export interface FullPath {
+  path: string;
+  bucket: string;
+  dbId?: string;
+}
+
+export interface ShareViaPublicKeyRequest {
+  /**
+   * Hex encoded public keys of users to share the specified files with.
+   */
+  publicKeys: string[];
+  paths: FullPath[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface ShareViaPublicKeyResponse {}
