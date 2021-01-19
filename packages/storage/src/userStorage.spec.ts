@@ -81,12 +81,15 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
             return Promise.resolve({
               mimeType: 'generic/type',
               bucketSlug: 'myBucket',
+              bucketKey: 'myBucketKey',
               dbId: 'mockThreadId',
               path: '/',
             });
           },
-        })
-      ,
+          setFilePublic(_metadata: FileMetadata): Promise<void> {
+            return Promise.resolve();
+          },
+        }),
     },
   );
 

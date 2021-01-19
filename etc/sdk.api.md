@@ -171,10 +171,10 @@ export class GundbMetadataStore implements UserMetadataStore {
     findBucket(bucketSlug: string): Promise<BucketMetadata | undefined>;
     findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
     findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined>;
-    // Warning: (ae-forgotten-export) The symbol "GunChainReference" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "GunDataState" needs to be exported by the entry point index.d.ts
-    static fromIdentity(username: string, userpass: string, gunOrServer?: GunChainReference<GunDataState> | string): Promise<GundbMetadataStore>;
+    // Warning: (ae-forgotten-export) The symbol "GunInit" needs to be exported by the entry point index.d.ts
+    static fromIdentity(username: string, userpass: string, gunOrServer?: GunInit | string): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
+    setFilePublic(metadata: FileMetadata): Promise<void>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
     }
 
@@ -216,6 +216,15 @@ export interface ListDirectoryRequest {
 export interface ListDirectoryResponse {
     // (undocumented)
     items: DirectoryEntry[];
+}
+
+// @public (undocumented)
+export interface MakeFilePublicRequest {
+    // (undocumented)
+    bucket: string;
+    // (undocumented)
+    path: string;
+    writable: boolean;
 }
 
 // @public (undocumented)
@@ -321,6 +330,7 @@ export interface UserMetadataStore {
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
     listBuckets: () => Promise<BucketMetadata[]>;
+    setFilePublic: (metadata: FileMetadata) => Promise<void>;
     upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
 }
 
@@ -354,6 +364,7 @@ export class UserStorage {
     createFolder(request: CreateFolderRequest): Promise<void>;
     initListener(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
+    makeFilePublic(request: MakeFilePublicRequest): Promise<void>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(uuid: string): Promise<OpenUuidFileResponse>;
     txlSubscribe(): Promise<TxlSubscribeResponse>;

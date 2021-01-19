@@ -206,7 +206,7 @@ describe('Users storing data', () => {
     expect(fileResponse?.entry?.bucket).to.not.be.empty;
     expect(fileResponse?.entry?.dbId).to.not.be.empty;
     expect(fileResponse.entry.name).to.equal('top.txt');
-    const actualTxtContent = await fileResponse.consumeStream();
+    let actualTxtContent = await fileResponse.consumeStream();
     expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
 
     // ensure file is not accessible from outside of owners file
@@ -215,6 +215,14 @@ describe('Users storing data', () => {
 
     await expect(unauthorizedStorage.openFileByUuid(file?.uuid || ''))
       .to.eventually.be.rejectedWith(FileNotFoundError);
+
+    // ensure file is accessible after making it public
+    await storage.makeFilePublic({ bucket: 'personal', path: '/top.txt', writable: false });
+
+    const publicFileResponse = await unauthorizedStorage.openFileByUuid(file?.uuid || '');
+    expect(publicFileResponse.entry.name).to.equal('top.txt');
+    actualTxtContent = await publicFileResponse.consumeStream();
+    expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
   }).timeout(TestsDefaultTimeout);
 
   it('should subscribe to textile events', async () => {

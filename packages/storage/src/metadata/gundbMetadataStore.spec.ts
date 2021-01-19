@@ -60,4 +60,27 @@ describe('GunsdbMetadataStore', () => {
     const savedMetadataByUuid = await store.findFileMetadataByUuid(fileMetadata.uuid);
     expect(savedMetadataByUuid).to.deep.equal(fileMetadata);
   }).timeout(10000);
+
+  it('should fetch public file metadata correctly', async () => {
+    const store = await GundbMetadataStore.fromIdentity(username, password);
+    const fileMetadata = {
+      uuid: v4(),
+      mimeType: 'image/png',
+      bucketSlug: 'personal',
+      dbId: 'something',
+      path: '/home/case.png',
+    };
+
+    await store.upsertFileMetadata(fileMetadata);
+    await store.setFilePublic(fileMetadata);
+
+    // test retrieving by uuid from another user
+    const newUser: Identity = PrivateKey.fromRandom();
+    const newStore = await GundbMetadataStore.fromIdentity(
+      Buffer.from(newUser.public.pubKey).toString('hex'),
+      Buffer.from(newUser.privKey).toString('hex'),
+    );
+    const savedMetadataByUuid = await newStore.findFileMetadataByUuid(fileMetadata.uuid);
+    expect(savedMetadataByUuid).to.deep.equal(fileMetadata);
+  }).timeout(10000);
 });

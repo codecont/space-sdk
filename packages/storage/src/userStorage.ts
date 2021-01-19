@@ -18,6 +18,7 @@ import { AddItemsRequest,
   FileMember,
   ListDirectoryRequest,
   ListDirectoryResponse,
+  MakeFilePublicRequest,
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileResponse,
@@ -110,7 +111,12 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
-  private static parsePathItems(its: PathItem[], metadataMap: Record<string, FileMetadata>, bucket: string, dbId: string): DirectoryEntry[] {
+  private static parsePathItems(
+    its: PathItem[],
+    metadataMap: Record<string, FileMetadata>,
+    bucket: string,
+    dbId: string,
+  ): DirectoryEntry[] {
     const filteredEntries = its.filter((it:PathItem) => !isMetaFileName(it.name));
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
@@ -317,17 +323,22 @@ export class UserStorage {
       throw new FileNotFoundError();
     }
 
-    const existingRoot = await UserStorage.getExistingBucket(client, fileMetadata.bucketSlug, fileMetadata.dbId);
-    if (!existingRoot) {
-      throw new DirEntryNotFoundError(fileMetadata.path, fileMetadata.bucketSlug);
-    }
-
     try {
+      client.withThread(fileMetadata.dbId);
+      const bucketKey = fileMetadata.bucketKey || '';
       // fetch entry information
-      const existingFile = await client.listPath(existingRoot.key, fileMetadata.path);
-      const [fileEntry] = UserStorage.parsePathItems([existingFile.item!], { [fileMetadata.path]: fileMetadata }, fileMetadata.bucketSlug, fileMetadata.dbId);
+      const existingFile = await client.listPath(bucketKey, fileMetadata.path);
+      if (!existingFile.item) {
+        throw new FileNotFoundError();
+      }
 
-      const fileData = client.pullPath(existingRoot.key, fileMetadata.path);
+      const [fileEntry] = UserStorage.parsePathItems(
+        [existingFile.item!],
+        { [fileMetadata.path]: fileMetadata },
+        fileMetadata.bucketSlug,
+        fileMetadata.dbId,
+      );
+      const fileData = client.pullPath(bucketKey, fileMetadata.path);
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
@@ -341,6 +352,29 @@ export class UserStorage {
         throw e;
       }
     }
+  }
+
+  /**
+   * Make the file at path publicly accessible.
+   *
+   * A public file can be opened by its Uuid.
+   *
+   */
+  public async makeFilePublic(request: MakeFilePublicRequest): Promise<void> {
+    const metadataStore = await this.getMetadataStore();
+    const client = this.getUserBucketsClient();
+    const bucket = await this.getOrCreateBucket(client, request.bucket);
+    const path = sanitizePath(request.path);
+
+    const metadata = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, path);
+    if (metadata === undefined) {
+      throw new DirEntryNotFoundError(path, bucket.slug);
+    }
+
+    await metadataStore.setFilePublic(metadata!);
+    const roles = new Map();
+    roles.set('*', request.writable ? PathAccessRole.PATH_ACCESS_ROLE_WRITER : PathAccessRole.PATH_ACCESS_ROLE_READER);
+    await client.pushPathAccessRoles(bucket.root?.key || '', path, roles);
   }
 
   /**
@@ -468,6 +502,7 @@ export class UserStorage {
           await metadataStore.upsertFileMetadata({
             uuid: v4(),
             mimeType: file.mimeType,
+            bucketKey: bucket.root?.key,
             bucketSlug: bucket.slug,
             dbId: bucket.dbId,
             path,

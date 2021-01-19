@@ -65,6 +65,16 @@ export interface OpenFileRequest {
   bucket: string;
 }
 
+export interface MakeFilePublicRequest {
+  path: string;
+  bucket: string;
+  /**
+   * Specifies if the file should be made public writable
+   * by default, it is only readable
+   */
+  writable: boolean;
+}
+
 export interface OpenFileResponse {
   stream: AsyncIterableIterator<Uint8Array>;
   /**
