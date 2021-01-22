@@ -1,6 +1,6 @@
 import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
 import { publicKeyBytesFromString } from '@textile/crypto';
-import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
+import { Users, Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
 import ee from 'event-emitter';
 import dayjs from 'dayjs';
 import { flattenDeep } from 'lodash';
@@ -30,6 +30,7 @@ import { filePathFromIpfsPath,
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
+import { Mailbox } from './mailbox/mailbox';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -42,6 +43,7 @@ export interface UserStorageConfig {
    */
   bucketsInit?: (auth: UserAuth) => Buckets;
   threadsInit?: (auth: UserAuth) => Client;
+  usersInit?: (auth: UserAuth) => Users;
   metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
 }
 
@@ -73,6 +75,8 @@ export class UserStorage {
   private userMetadataStore?: UserMetadataStore;
 
   private listener?:Listener;
+
+  private mailbox: Mailbox;
 
   constructor(private readonly user: SpaceUser, private readonly config: UserStorageConfig = {}) {
     this.config.textileHubAddress = this.config.textileHubAddress ?? DefaultTextileHubAddress;
@@ -548,6 +552,10 @@ export class UserStorage {
     return this.initThreads(this.getUserAuth());
   }
 
+  private getUsersClient(): Users {
+    return this.initUsers(this.getUserAuth());
+  }
+
   private getUserAuth(): UserAuth {
     if (this.user.storageAuth === undefined) {
       throw new UnauthenticatedError();
@@ -570,6 +578,14 @@ export class UserStorage {
     }
 
     return Client.withUserAuth(userAuth, this.config?.textileHubAddress);
+  }
+
+  private initUsers(userAuth: UserAuth): Users {
+    if (this.config?.usersInit) {
+      return this.config.usersInit(userAuth);
+    }
+
+    return Users.withUserAuth(userAuth, { host: this.config?.textileHubAddress });
   }
 
   private async getMetadataStore(): Promise<UserMetadataStore> {
